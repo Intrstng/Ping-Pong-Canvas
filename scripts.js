@@ -138,19 +138,19 @@ function drawPongScores(score_1, score_2, text = '') {
     // Create players 1 score
     ctxScores.beginPath();
     ctxScores.fillStyle = 'rgb(41, 173, 85)';
-    ctxScores.font='30px Orbitron';
+    ctxScores.font='28px Orbitron';
     ctxScores.textAlign = 'center';
     ctxScores.fillText(score_1, canvasScores.width / 2 - 33, canvasScores.height / 2);
     // Create colon
     ctxScores.beginPath();
     ctxScores.fillStyle = 'rgb(255, 0, 0)';
-    ctxScores.font='32px Orbitron';
+    ctxScores.font='28px Orbitron';
     ctxScores.textAlign = 'center';
     ctxScores.fillText(':', canvasScores.width / 2, canvasScores.height / 2 - 1);
     // Create players 2 score
     ctxScores.beginPath();
     ctxScores.fillStyle = 'rgb(25, 0, 255)';
-    ctxScores.font='32px Orbitron';
+    ctxScores.font='28px Orbitron';
     ctxScores.textAlign = 'center';
     ctxScores.fillText(score_2, canvasScores.width / 2 + 33, canvasScores.height / 2);    
   }
