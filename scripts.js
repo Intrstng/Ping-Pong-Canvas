@@ -6,6 +6,8 @@ let requestAnim = window.requestAnimationFrame ||
                   function(callback) { window.setTimeout(callback, 1000 / 60); }
 let requestAnimDrawPongCanvas = null;
 let requestAnimMoveBall = null;
+let requestMoveLeftRacket = null;
+let requestMoveRightRacket = null;
 const canvas = document.getElementById('pong');
 const ctx = canvas.getContext('2d');
 const canvasScores = document.getElementById('scores');
@@ -16,6 +18,7 @@ const wallHitSound = new Audio('http://web.mit.edu/sahughes/www/Sounds/m=100.mp3
 const racketHitSound = new Audio('http://www.healthfreedomusa.org/downloads/iMovie.app/Contents/Resources/iMovie%20%2708%20Sound%20Effects/Golf%20Hit%201.mp3');
 const missSound = new Audio('http://www.sfu.ca/~johannac/IAT202%20Exercise3/hit.wav');
 const fanfareSound = new Audio('http://www.ringophone.com/mp3poly/15959.mp3');
+const greetingText = 'Turn off the sound on the computer if it might interfere with you now.'
 
 function Settings() {
   this.racketWidth = Math.floor(canvas.width * 0.023);
@@ -80,13 +83,17 @@ document.addEventListener('keydown', keyDownHandler);
 document.addEventListener('keyup', keyUpHandler);
 
 function blankCanvas(context) {
-  context.clearRect(0, 0, canvas.width, canvas.height);
+  if (context === 'ctx') {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  } else if (context === 'ctxScores') {
+    ctxScores.clearRect(0, 0, canvasScores.width, canvasScores.height);
+  }
 }
 
 function drawPongCanvas() {
   if (canvasScores && canvasScores.getContext('2d')) {
     // Blank canvas
-    blankCanvas(ctx);
+    blankCanvas('ctx');
     // Create field
     ctx.beginPath();
     ctx.fillStyle = 'rgb(241, 210, 33)';
@@ -94,9 +101,6 @@ function drawPongCanvas() {
     // Create ball
     ctx.save();
     ctx.beginPath();
-
-                                            console.log(settings.ballCurrentPosition.currentPos_X)
-
     ctx.arc(settings.ballCurrentPosition.currentPos_X, settings.ballCurrentPosition.currentPos_Y, settings.ballSize, 0, 2 * Math.PI);
     ctx.fillStyle = 'rgb(255, 0, 0)';
     ctx.fill();
@@ -118,23 +122,23 @@ function drawPongScores(score_1, score_2, text = '') {
   if (canvasScores && canvasScores.getContext('2d')) {
     if (text) {
       // Blank score canvas
-      blankCanvas(ctxScores);
+      blankCanvas('ctxScores');
       // Create countdown
       ctxScores.save();
       ctxScores.beginPath();
       ctxScores.fillStyle = 'rgb(255, 255, 255)';
-      ctxScores.font='32px Orbitron';
+      ctxScores.font='28px Orbitron';
       ctxScores.textAlign = 'center';
       ctxScores.fillText(text, canvasScores.width / 2, canvasScores.height / 2 - 1);
       ctxScores.restore();
       return;
     } 
     // Blank score canvas
-    blankCanvas(ctxScores);
+    blankCanvas('ctxScores');
     // Create players 1 score
     ctxScores.beginPath();
     ctxScores.fillStyle = 'rgb(41, 173, 85)';
-    ctxScores.font='32px Orbitron';
+    ctxScores.font='30px Orbitron';
     ctxScores.textAlign = 'center';
     ctxScores.fillText(score_1, canvasScores.width / 2 - 33, canvasScores.height / 2);
     // Create colon
@@ -151,7 +155,7 @@ function drawPongScores(score_1, score_2, text = '') {
     ctxScores.fillText(score_2, canvasScores.width / 2 + 33, canvasScores.height / 2);    
   }
 }
-window.onload = drawPongScores(settings.playerScoreCounter_1, settings.playerScoreCounter_2);
+window.onload = drawPongScores(settings.playerScoreCounter_1, settings.playerScoreCounter_2, greetingText);
 
 // function gameSoundInit(...args) {
 //   for (let arg of args) {
@@ -198,7 +202,7 @@ function startTimer(duration, fn) {
 function showScore(player, score) {
   if (player === 'player1') {
     drawPongScores(score, settings.playerScoreCounter_2, text = '')
-    if (score >= 2) {
+    if (score >= 5) {
       drawPongScores(score, settings.playerScoreCounter_2, text = 'Player 1 Wins!');
       settings.isGameOver = true;
       gameSound(fanfareSound);
@@ -209,7 +213,7 @@ function showScore(player, score) {
     }
   } else if (player === 'player2') {
     drawPongScores(settings.playerScoreCounter_1, score, text = '')
-    if (score >= 2) {
+    if (score >= 5) {
       drawPongScores(score, settings.playerScoreCounter_2, text = 'Player 2 Wins!');
       settings.isGameOver = true;
       gameSound(fanfareSound);
@@ -271,9 +275,9 @@ function moveBall() {
     settings.ballCurrentPosition.currentPos_X += settings.ballActualSpeed_X;
     // Checking if the ball hits the right racket
     if ((settings.ballCurrentPosition.currentPos_X + settings.ballSize > canvas.width - settings.racketWidth
-            && settings.ballCurrentPosition.currentPos_Y + settings.ballSize / 2 > settings.racketPlayer2_actualPosY)
+            && settings.ballCurrentPosition.currentPos_Y + Math.floor(settings.ballSize / 2) > settings.racketPlayer2_actualPosY)
         && (settings.ballCurrentPosition.currentPos_X + settings.ballSize > canvas.width - settings.racketWidth
-            && settings.ballCurrentPosition.currentPos_Y - settings.ballSize / 2 < settings.racketPlayer2_actualPosY + settings.racketHeight)) {
+            && settings.ballCurrentPosition.currentPos_Y - Math.floor(settings.ballSize / 2) < settings.racketPlayer2_actualPosY + settings.racketHeight)) {
         settings.ballCurrentPosition.currentPos_X = canvas.width - settings.ballSize - settings.racketWidth;
         settings.ballActualSpeed_X = -settings.ballActualSpeed_X;
         gameSound(racketHitSound);
@@ -284,14 +288,16 @@ function moveBall() {
         settings.isCanBallMove = false;
         settings.isCanRacketMove = false;
         settings.playerScoreCounter_1++;
+        cancelAnimationFrame(requestMoveLeftRacket);
+        cancelAnimationFrame(requestMoveRightRacket);
         showScore('player1', settings.playerScoreCounter_1);
         startTimer(settings.startCountdown, restart);
       }  
     // Checking if the ball hits the left racket
     if ((settings.ballCurrentPosition.currentPos_X - settings.ballSize < settings.racketWidth
-            && settings.ballCurrentPosition.currentPos_Y + settings.ballSize / 2 > settings.racketPlayer1_actualPosY)
+            && settings.ballCurrentPosition.currentPos_Y + Math.floor(settings.ballSize / 2) > settings.racketPlayer1_actualPosY)
         && (settings.ballCurrentPosition.currentPos_X - settings.ballSize + Math.abs(settings.ballActualSpeed_X) / 2 < settings.racketWidth
-            && settings.ballCurrentPosition.currentPos_Y - settings.ballSize / 2 < settings.racketPlayer1_actualPosY + settings.racketHeight)) {
+            && settings.ballCurrentPosition.currentPos_Y - Math.floor(settings.ballSize / 2) < settings.racketPlayer1_actualPosY + settings.racketHeight)) {
               settings.ballActualSpeed_X = -settings.ballActualSpeed_X;
         settings.ballCurrentPosition.currentPos_X = settings.racketWidth + settings.ballSize;
         gameSound(racketHitSound);
@@ -302,6 +308,8 @@ function moveBall() {
         settings.isCanBallMove = false;
         settings.isCanRacketMove = false;
         settings.playerScoreCounter_2++;
+        cancelAnimationFrame(requestMoveLeftRacket);
+        cancelAnimationFrame(requestMoveRightRacket);
         showScore('player2', settings.playerScoreCounter_2);
         startTimer(settings.startCountdown, restart);
       }
@@ -329,13 +337,13 @@ function moveLeftRacket() {
       if (settings.racketPlayer1_actualPosY - settings.racketSpeed <= 0) {
         settings.racketPlayer1_actualPosY = 0;
       }
-      requestAnim(moveLeftRacket);
+      requestMoveLeftRacket = requestAnim(moveLeftRacket);
   } else if (settings.isDownPressedPlayer_1) {
       settings.racketPlayer1_actualPosY += settings.racketSpeed;
       if (settings.racketPlayer1_actualPosY + settings.racketHeight >= canvas.height) {
         settings.racketPlayer1_actualPosY = canvas.height - settings.racketHeight;
       } 
-      requestAnim(moveLeftRacket);
+      requestMoveLeftRacket = requestAnim(moveLeftRacket);
   }
 }
 
@@ -345,12 +353,12 @@ function moveRightRacket() {
       if (settings.racketPlayer2_actualPosY - settings.racketSpeed <= 0) {
         settings.racketPlayer2_actualPosY = 0;
       }
-    requestAnim(moveRightRacket);
+    requestMoveRightRacket = requestAnim(moveRightRacket);
   } else if (settings.isDownPressedPlayer_2) {
     settings.racketPlayer2_actualPosY += settings.racketSpeed;
     if (settings.racketPlayer2_actualPosY + settings.racketHeight >= canvas.height) {
       settings.racketPlayer2_actualPosY = canvas.height - settings.racketHeight;
     } 
-    requestAnim(moveRightRacket);
+    requestMoveRightRacket = requestAnim(moveRightRacket);
   }
 }
