@@ -8,7 +8,7 @@ The game features physics, collision detection, score tracking, a start timer, s
 
 ![Screenshot](./assets/gameplay.PNG)
 
-*The second part consisted of three tasks that required creating a game board
+*The third part consisted of three tasks that required creating a game board
 and game elements:*
 - first using the DOM API
 - then SVG API
